@@ -25,6 +25,7 @@ class Categorize(object):
 		self.Cluster_Model = load_obj("clusterLarge")
 		self.catVec = load_obj("catVec")
 		self.numK2CatMap = load_obj("numK2CatMap")
+		# the following part is needed to process phrases
 		self.model = gensim.models.Word2Vec.load_word2vec_format('vectors.bin', binary=True)
 		self.model.init_sims(replace=True)
 		#Load Rake
@@ -44,16 +45,31 @@ class Categorize(object):
 	def getCategory(self,text):
 		# Text To Categorize = text
 
+		# Plus Rake gets phrases that mean different and finds vecs to get cat
+		# Ptext = u" ".join(twokenize.tokenize(text))
+		# Ptext = self.rake.run(Ptext.lower().strip())
+		
+		# Just Twokenize gives more number of cats (very noisy)
+		#Ptext = twokenize.tokenize(text)
+
+		# Twok and Rake and get Keywords not phrases
 		Ptext = u" ".join(twokenize.tokenize(text))
 		Ptext = self.rake.run(Ptext.lower().strip())
 
+		Words = []
+		for pt in Ptext:
+			pt=pt[0]
+			if len(pt.split()) > 1:
+				Words.extend(pt.split())
+			else:
+				Words.extend([pt])
 
 		scores=dict()
 		for i in range(0,22):
 			scores[i] = 0.0
 
-		for phrase in Ptext:
-			phrase = phrase[0]
+		for phrase in Words:
+			# phrase = phrase[0]
 			if len(phrase.split()) == 1:
 				try:
 					if len(self.Cluster_lookUP[phrase]) == 1:
@@ -65,6 +81,9 @@ class Categorize(object):
 				except:
 					#print(phrase + " Skipped!")
 					continue
+			# else:
+			# 	return("Break")
+			# the following part is needed to process phrases
 			else:
 				words = phrase.split()
 				try:
@@ -83,11 +102,16 @@ class Categorize(object):
 					#print(words[0] + " Skipped!")
 					continue
 		#print(scores)
-		# catNum = max(scores.items(), key=operator.itemgetter(1))[0]
-		# scoree= max(scores.items(), key = operator.itemgetter(1))[1]
+
+		'''Modifiable Parameters'''
 		# Vary this value to tune models Multi Topic Performance
-		threshold = 0.30
+		thresholdP = 0.35  # This value is in percent
 		# if u want a more finer prediction set threshold to 0.35 or 0.40 (caution: don't exceed 0.40)
+		threshold = max(scores.items(), key = operator.itemgetter(1))[1] * 0.30
+		
+		# set max number of cats assignable to any text
+		catLimit = 4  # change to 3 or less more aggresive model
+		# more less the value more aggresive the model 
 
 		scoreSort  = sorted(scores.items(), key = operator.itemgetter(1), reverse=True)
 		#print(scoreSort)
@@ -104,6 +128,9 @@ class Categorize(object):
 		else:
 			if len(cats) == 1:
 				ret = str(cats[0])
-			else:
+			elif len(cats) <= catLimit:
 				ret = "|".join(cats)
+			else:
+				# ret = "general" or return top most topic
+				ret = cats[0]
 			return ret

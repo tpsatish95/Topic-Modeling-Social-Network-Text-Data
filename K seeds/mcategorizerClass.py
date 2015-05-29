@@ -85,11 +85,16 @@ class Categorize(object):
 		#print(scores)
 		# catNum = max(scores.items(), key=operator.itemgetter(1))[0]
 		# scoree= max(scores.items(), key = operator.itemgetter(1))[1]
+		# Vary this value to tune models Multi Topic Performance
+		threshold = 0.30
+		# if u want a more finer prediction set threshold to 0.35 or 0.40 (caution: don't exceed 0.40)
+
 		scoreSort  = sorted(scores.items(), key = operator.itemgetter(1), reverse=True)
+		#print(scoreSort)
 		cats = []
 		f=0
 		for s in scoreSort:
-			if s[1] != 0.0:
+			if s[1] != 0.0 and s[1] > threshold:
 				f=1
 				cats.extend([self.num2cat[s[0]]])		
 			else:

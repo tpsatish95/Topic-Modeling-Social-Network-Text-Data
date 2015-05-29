@@ -55,7 +55,7 @@ print("length after duplicate removal:" +str(len(raw)))
 # #    print(line)
 # print("Final: " +str(len(ProcessedLines)))
 
-# catz = mcategorizerClass.Categorize()
+catz = mcategorizerClass.Categorize()
 
 writer = csv.writer(open("output.csv","w"))
 for text in raw:

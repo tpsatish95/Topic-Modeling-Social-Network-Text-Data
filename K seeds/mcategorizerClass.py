@@ -6,12 +6,14 @@ from scipy import spatial
 import operator
 import numpy as np
 
+path = "../Topic-Modeing-Social-Network-Text-Data/K seeds/"
+
 def save_obj(obj, name ):
-    with open( name + '.pkl', 'wb') as f:
+    with open(path + name + '.pkl', 'wb') as f:
         pickle.dump(obj, f,  protocol=2)
 
-def load_obj(name ):
-    with open( name + '.pkl', 'rb') as f:
+def load_obj(name):
+    with open( path + name + '.pkl', 'rb') as f:
         return pickle.load(f)
 
 class Categorize(object):
@@ -26,7 +28,7 @@ class Categorize(object):
 		self.catVec = load_obj("catVec")
 		self.numK2CatMap = load_obj("numK2CatMap")
 		# the following part is needed to process phrases
-		self.model = gensim.models.Word2Vec.load_word2vec_format('vectors.bin', binary=True)
+		self.model = gensim.models.Word2Vec.load_word2vec_format(path + 'vectors.bin', binary=True)
 		self.model.init_sims(replace=True)
 		#Load Rake
 		self.rake = rake.Rake("SmartStoplist.txt")
@@ -79,11 +81,17 @@ class Categorize(object):
 							scores[kw] += self.Cosine_Similarity[phrase]
 						#print(num2cat[Cluster_lookUP[phrase]])
 				except:
-					#print(phrase + " Skipped!")
+					#try:	## for new 3.5 gb model file alone
+					#	vec = model[phrase]
+					#	tC = self.Cluster_Model.predict(vec)
+					#	# tempcat returns K index we need to map it to 22 topics
+					#	scores[self.numK2CatMap[tC[0]]] += CosSim(vec,self.catVec[tC[0]])
+					#	continue
+					#except:
 					continue
 			# else:
 			# 	return("Break")
-			# the following part is needed to process phrases
+			# the following part is needed to process phrases (if not needed uncomment above two lines and comment the below else part)
 			else:
 				words = phrase.split()
 				try:
@@ -107,8 +115,15 @@ class Categorize(object):
 		# Vary this value to tune models Multi Topic Performance
 		thresholdP = 0.35  # This value is in percent
 		# if u want a more finer prediction set threshold to 0.35 or 0.40 (caution: don't exceed 0.40)
-		threshold = max(scores.items(), key = operator.itemgetter(1))[1] * 0.30
+		maxS = max(scores.items(), key = operator.itemgetter(1))[1] 
+		threshold = maxS * 0.30
 		
+		#Min Score
+		minScore = 0.30 
+		# if u want a more noise free prediction set threshold to 0.35 or 0.40 (caution: don't exceed 0.40)
+		flag = 0
+		if maxS < minScore:
+			flag = 1
 		# set max number of cats assignable to any text
 		catLimit = 4  # change to 3 or less more aggresive model
 		# more less the value more aggresive the model 
@@ -123,7 +138,7 @@ class Categorize(object):
 				cats.extend([self.num2cat[s[0]]])		
 			else:
 				continue
-		if f==0: #No Category assigned!
+		if f == 0 or flag == 1: #No Category assigned!
 			return ("general")
 		else:
 			if len(cats) == 1:
@@ -132,5 +147,5 @@ class Categorize(object):
 				ret = "|".join(cats)
 			else:
 				# ret = "general" or return top most topic
-				ret = cats[0]
+				ret = cats[0] +"|"+"general"
 			return ret
